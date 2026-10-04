@@ -1,0 +1,19 @@
+{
+  "type": "object",
+  "name": "stages",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "order": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "title",
+    "order"
+  ]
+}

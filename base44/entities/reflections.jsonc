@@ -1,0 +1,34 @@
+{
+  "type": "object",
+  "name": "reflections",
+  "properties": {
+    "content": {
+      "type": "string"
+    },
+    "currentStageId": {
+      "type": "string"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "content",
+    "currentStageId"
+  ],
+  "rls": {
+    "read": {},
+    "create": {},
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

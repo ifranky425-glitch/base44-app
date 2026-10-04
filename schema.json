@@ -1,0 +1,22 @@
+{
+  "project": "base44-app",
+  "version": "1.0.0",
+  "collections": {
+    "users": {
+      "fields": {
+        "id": "string",
+        "username": "string",
+        "email": "string",
+        "createdAt": "timestamp"
+      }
+    },
+    "projects": {
+      "fields": {
+        "id": "string",
+        "title": "string",
+        "ownerId": "string",
+        "status": "string"
+      }
+    }
+  }
+}

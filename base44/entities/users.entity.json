@@ -1,0 +1,10 @@
+{
+  "name": "users",
+  "type": "object",
+  "properties": {
+    "username": { "type": "string" },
+    "email": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["username", "email"]
+}

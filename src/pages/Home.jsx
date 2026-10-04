@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useAuth } from '@/lib/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -51,10 +52,18 @@ export default function Home() {
       <header className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Reflections</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-          <span>{user?.full_name || user?.email}</span>
-          <Button variant="outline" size="sm" onClick={() => logout()}>
-            Sign out
-          </Button>
+          {user ? (
+            <>
+              <span>{user.full_name || user.email}</span>
+              <Button variant="outline" size="sm" onClick={() => logout()}>
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/login">Sign in</Link>
+            </Button>
+          )}
         </div>
       </header>
 

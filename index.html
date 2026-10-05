@@ -3,9 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Rebridge Platform Workspace</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+      {
+        "imports": {
+          "@base44/sdk": "https://esm.run"
+        }
+      }
+    </script>
 </head>
 <body>
-    
+    <div class="dashboard-wrapper">
+        <header>
+            <h2>🌱 Rebridge</h2>
+            <p class="subtitle">Consent-based reconnection journeys at a pace that feels safe.</p>
+        </header>
+
+        <!-- Current Progress Tracker -->
+        <main class="grid-container">
+            <section class="control-panel">
+                <h3>Log Reflection Entry</h3>
+                <form id="reflectionForm">
+                    <label for="stageSelect">Select Current Stage</label>
+                    <select id="stageSelect">
+                        <option value="stage_1">Stage 1: Internal Assessment & Reflection</option>
+                        <option value="stage_2">Stage 2: Mediated Indirect Outreach</option>
+                        <option value="stage_3">Stage 3: Controlled Direct Communication</option>
+                    </select>
+
+                    <label for="journalText">Your Private Reflection Thoughts</label>
+                    <textarea id="journalText" placeholder="How do you feel about moving to this next step? What boundaries do you need?"></textarea>
+                    
+                    <button type="submit" id="saveBtn">Log Secure Reflection</button>
+                </form>
+                <div id="statusMessage"></div>
+            </section>
+
+            <!-- Live Timeline Streams -->
+            <section class="stream-panel">
+                <h3>Your Active Reflection Log</h3>
+                <div id="logContainer">
+                    <p class="empty-state">No reflection entries logged yet on this machine.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module" src="app.js"></script>
 </body>
 </html>

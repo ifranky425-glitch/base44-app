@@ -1,0 +1,10 @@
+{
+  "name": "reflections",
+  "type": "object",
+  "properties": {
+    "content": { "type": "string" },
+    "currentStageId": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" }
+  },
+  "required": ["content", "currentStageId"]
+}

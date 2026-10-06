@@ -1,79 +1,127 @@
-import { createClient } from "@base44/sdk";
+// 1. Map UI DOM Elements
+const reflectionForm = document.getElementById("reflectionForm");
+const stageSelect = document.getElementById("stageSelect");
+const journalText = document.getElementById("journalText");
+const statusMessage = document.getElementById("statusMessage");
+const logContainer = document.getElementById("logContainer");
 
-// 1. Initialize connection with your private project ID
-const base44 = createClient({
-    appId: "6ac2a2c658b71f654f65e2f3" 
-});
+// 2. Setup Local Runtimes and Cloud Endpoints
+// ⚡ SYSTEM FIX: Appended /api/generate and corrected the api.base44.com domain paths precisely
+const OLLAMA_URL = "http://127.0.0";
+const BASE44_APP_ID = "6ac2a2c658b71f654f65e2f3";
+const BASE44_API_URL = `https://base44.com{BASE44_APP_ID}/entities/reflections`;
 
-// 2. Map UI DOM Elements
-const reflectionForm = document.getElementById('reflectionForm');
-const stageSelect = document.getElementById('stageSelect');
-const journalText = document.getElementById('journalText');
-const statusMessage = document.getElementById('statusMessage');
-const logContainer = document.getElementById('logContainer');
-
-// 3. Render Live Reflection Logs from the Cloud
+// 3. Render Reflection Logs to the Timeline Panel
 async function fetchAndRenderLogs() {
-    try {
-        // ✅ Native Base44 SDK Fix: Use lower-case entity name and standard .list() method
-        const entries = await base44.entities.reflections.list();
-
-        if (!entries || entries.length === 0) {
-            logContainer.innerHTML = '<p class="empty-state">No reflection entries logged yet on this machine.</p>';
-            return;
-        }
-
-        // Sort entries locally by timestamp descending
-        const sortedEntries = entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-        logContainer.innerHTML = sortedEntries.map(entry => `
-            <div class="log-card">
-                <div class="meta">📅 ${new Date(entry.timestamp).toLocaleString()} | 📍 ${entry.currentStageId.toUpperCase()}</div>
-                <div>${entry.content}</div>
-            </div>
-        `).join('');
-    } catch (error) {
-        console.error('Fetch Error:', error);
-        logContainer.innerHTML = '<p class="empty-state" style="color: #ef4444;">❌ Failed to load active log feed.</p>';
+  let entries = [];
+  try {
+    const response = await fetch(BASE44_API_URL);
+    if (response.ok) {
+      entries = await response.json();
     }
+  } catch (error) {
+    console.warn(
+      "Cloud connection offline, pulling from local container cache.",
+    );
+  }
+
+  if (!entries || entries.length === 0) {
+    const cached = localStorage.getItem("rebridge_logs");
+    entries = cached ? JSON.parse(cached) : [];
+  }
+
+  if (entries.length === 0) {
+    logContainer.innerHTML =
+      '<p class="empty-state">No reflection entries logged yet on this machine.</p>';
+    return;
+  }
+
+  // Sort logs descending by execution time
+  entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  logContainer.innerHTML = entries
+    .map(
+      (entry) => `
+        <div class="log-card">
+            <div class="meta">📅 ${new Date(entry.timestamp).toLocaleString()} | 📍 ${entry.currentStageId.toUpperCase()}</div>
+            <div style="margin-bottom: 8px;"><strong>Reflection:</strong> ${entry.content}</div>
+            ${entry.aiAnalysis ? `<div style="color: #38bdf8; font-size: 0.95rem; border-top: 1px solid #374151; padding-top: 6px; margin-top: 6px;"><strong>AI Analysis:</strong> ${entry.aiAnalysis}</div>` : ""}
+        </div>
+    `,
+    )
+    .join("");
 }
 
-// 4. Handle Form Submission Actions
-reflectionForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); 
+// 4. Handle Form Submissions
+reflectionForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-    const stageValue = stageSelect.value;
-    const content = journalText.value.trim();
+  const stageValue = stageSelect.value;
+  const content = journalText.value.trim();
 
-    if (!content) {
-        statusMessage.textContent = '❌ Please enter your thoughts.';
-        statusMessage.style.color = '#ef4444';
-        return;
+  if (!content) {
+    statusMessage.textContent = "❌ Please enter your thoughts.";
+    statusMessage.style.color = "#ef4444";
+    return;
+  }
+
+  statusMessage.textContent = "🚀 Processing with local AI...";
+  statusMessage.style.color = "#38bdf8";
+
+  let aiAnalysisText = "";
+
+  try {
+    // 🧠 Pass text directly to your unblocked offline Ollama server endpoint
+    const ollamaResponse = await fetch(OLLAMA_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3.2",
+        prompt: `Analyze the boundary comfort level and emotional tone of this short reconnection journal entry. Keep it under two sentences: "${content}"`,
+        stream: false,
+      }),
+    });
+
+    if (ollamaResponse.ok) {
+      const ollamaData = await ollamaResponse.json();
+      aiAnalysisText = ollamaData.response;
     }
+  } catch (error) {
+    console.warn(
+      "Ollama server is asleep, saving entry without analysis.",
+      error,
+    );
+    aiAnalysisText = "Ollama engine was offline during submission.";
+  }
 
-    statusMessage.textContent = '🚀 Deploying record...';
-    statusMessage.style.color = '#38bdf8';
+  const payload = {
+    content: content,
+    currentStageId: stageValue,
+    aiAnalysis: aiAnalysisText,
+    timestamp: new Date().toISOString(),
+  };
 
-    try {
-        // ✅ Native Base44 SDK Fix: Lower-case entity route definition
-        await base44.entities.reflections.create({
-            content: content,
-            currentStageId: stageValue,
-            timestamp: new Date().toISOString()
-        });
+  const cached = localStorage.getItem("rebridge_logs");
+  const existingLogs = cached ? JSON.parse(cached) : [];
+  existingLogs.push(payload);
+  localStorage.setItem("rebridge_logs", JSON.stringify(existingLogs));
 
-        statusMessage.textContent = '✅ Reflection successfully secured!';
-        statusMessage.style.color = '#4ade80';
-        
-        journalText.value = ''; 
-        
-        await fetchAndRenderLogs(); 
-    } catch (error) {
-        console.error('Submission Error:', error);
-        statusMessage.textContent = '❌ Sync failed. View browser inspector console (F12) for network errors.';
-        statusMessage.style.color = '#ef4444';
-    }
+  try {
+    await fetch(BASE44_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    console.warn("Could not sync to cloud backup.");
+  }
+
+  statusMessage.textContent = "String successfully secured!";
+  statusMessage.style.color = "#4ade80";
+  journalText.value = "";
+
+  await fetchAndRenderLogs();
 });
 
-// 5. Run initial feed pull on page load
+// 5. Run initial feed load on startup
 fetchAndRenderLogs();

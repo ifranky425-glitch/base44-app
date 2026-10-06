@@ -39,18 +39,20 @@ async function fetchAndRenderLogs() {
   // Sort logs descending by execution time
   entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
+   // ✅ FIXED: Separated the string template generation logic cleanly from the function's closing brace
   logContainer.innerHTML = entries
     .map(
       (entry) => `
         <div class="log-card">
             <div class="meta">📅 ${new Date(entry.timestamp).toLocaleString()} | 📍 ${entry.currentStageId.toUpperCase()}</div>
             <div style="margin-bottom: 8px;"><strong>Reflection:</strong> ${entry.content}</div>
-            ${entry.aiAnalysis ? `<div style="color: #38bdf8; font-size: 0.95rem; border-top: 1px solid #374151; padding-top: 6px; margin-top: 6px;"><strong>AI Analysis:</strong> ${entry.aiAnalysis}</div>` : ""}
+            ${entry.aiAnalysis ? `<div style="color: #38bdf8; font-size: 0.95rem; border-top: 1px solid #374151; padding-top: 6px; margin-top: 6px;"><strong>AI Analysis:</strong> \${entry.aiAnalysis}</div>` : ""}
         </div>
-    `,
+    `
     )
     .join("");
 }
+
 
 // 4. Handle Form Submissions
 reflectionForm.addEventListener("submit", async (e) => {

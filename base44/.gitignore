@@ -6,3 +6,4 @@
 # Base44
 .app.json*
 .types/
+autosync.ps1

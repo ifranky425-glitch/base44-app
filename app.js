@@ -46,7 +46,7 @@ async function fetchAndRenderLogs() {
         <div class="log-card">
             <div class="meta">📅 ${new Date(entry.timestamp).toLocaleString()} | 📍 ${entry.currentStageId.toUpperCase()}</div>
             <div style="margin-bottom: 8px;"><strong>Reflection:</strong> ${entry.content}</div>
-            ${entry.aiAnalysis ? `<div style="color: #38bdf8; font-size: 0.95rem; border-top: 1px solid #374151; padding-top: 6px; margin-top: 6px;"><strong>AI Analysis:</strong> \${entry.aiAnalysis}</div>` : ""}
+            ${entry.aiAnalysis ? `<div style="color: #38bdf8; font-size: 0.95rem; border-top: 1px solid #374151; padding-top: 6px; margin-top: 6px;"><strong>AI Analysis:</strong> ${entry.aiAnalysis}</div>` : ""}
         </div>
     `
     )

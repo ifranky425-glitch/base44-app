@@ -43,6 +43,7 @@ services:
       - >
         npm ci --no-audit --no-fund &&
         (npx --yes base44@0.1.32 dev -p 3100 &) &&
+        node scripts/wait-for-backend.mjs &&
         exec npm run dev
     restart: on-failure
     healthcheck:

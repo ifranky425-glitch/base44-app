@@ -15,12 +15,17 @@ export default defineConfig({
   // NOT set up the /api proxy (the platform handles that at a different
   // layer).  In Docker we need both, so we add the proxy here, gated on
   // BASE44_PREVIEW_MODE so it never affects other environments.
+  //
+  // BASE44_BACKEND_URL points the proxy at the local Base44 dev backend
+  // (`base44 dev`, see the `backend` service in docker-compose.base44.yml)
+  // so the app can read/write entities during development.  When it is not
+  // set, the original behaviour (the hosted backend) is preserved.
   ...(process.env.BASE44_PREVIEW_MODE === '1'
     ? {
         server: {
           proxy: {
             '/api': {
-              target: 'https://base44.app',
+              target: process.env.BASE44_BACKEND_URL || 'https://base44.app',
               changeOrigin: true,
             },
           },

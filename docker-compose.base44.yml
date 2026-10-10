@@ -1,33 +1,63 @@
 services:
+  # Single dev container: the Vite frontend dev server plus the local Base44
+  # backend.
+  #
+  # `base44 dev` starts the Base44 development backend (entities API at
+  # /api/apps/<appId>/entities/...) from the project's base44/entities/*.entity.json
+  # and base44/.app.jsonc.  It binds localhost only, so it runs in this same
+  # container and Vite proxies /api to it (BASE44_BACKEND_URL below).  That lets
+  # the app read and write data locally instead of hitting the hosted backend,
+  # which is not deployed.
+  #
+  # `base44 dev` needs the Base44 CLI session for the logged-in account, which
+  # lives in ~/.base44 on the host.  BASE44_AUTH_DIR lets other environments
+  # point at their own location.
   web:
     image: node:22-slim
     working_dir: /app
     volumes:
       - ./:/app
       - node_modules:/app/node_modules
+      - ${BASE44_AUTH_DIR:-/root/.base44}:/root/.base44
     ports:
       - "3000:5173"
     environment:
       # Triggers the @base44/vite-plugin sandbox mode: binds 0.0.0.0:5173,
       # allows all hosts, enables polling-based file watching for bind mounts.
       - MODAL_SANDBOX_ID=1
-      - BASE44_PREVIEW_MODE=1
+      - BASE44_PREVIEW_MODE
+      - HOME=/root
       # Public app identifier (same value already hardcoded in app.js).
       - VITE_BASE44_APP_ID=6ac2a2c658b71f654f65e2f3
-      # Public Base44 backend URL — used by the SDK for appBaseUrl and by
-      # the vite proxy in vite.config.js to forward /api requests.
+      # Public Base44 backend URL — used by the SDK for appBaseUrl.
       - VITE_BASE44_APP_BASE_URL=https://base44.app
+      # Where vite.config.js forwards /api requests: the local `base44 dev`
+      # backend started below (same container, localhost).
+      - BASE44_BACKEND_URL=http://localhost:3100
       # Platform-managed: Vite >= 6.1 appends this to allowedHosts.
       # Harmless on Vite 5 (ignored).
       - __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
-    command: ["sh", "-ec", "npm install && exec npm run dev"]
+    command:
+      - sh
+      - -ec
+      - >
+        npm ci --no-audit --no-fund &&
+        (npx --yes base44@0.1.32 dev -p 3100 &) &&
+        exec npm run dev
     restart: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:5173/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))\""]
+      # Check real read-only responses from BOTH components; a 403/404 is not
+      # a healthy backend. Neither check writes application data.
+      test:
+        - CMD-SHELL
+        - >
+          node -e "const http=require('http');
+          const check=(port,path,json=false)=>new Promise(res=>{const q=http.get({host:'localhost',port,path,timeout:3000},s=>{let body='';s.on('data',c=>body+=c);s.on('end',()=>{let ok=s.statusCode===200;try{ok=ok&&(json?Array.isArray(JSON.parse(body)):body.includes('/src/main.jsx'));}catch{ok=false;}res(ok);});s.on('error',()=>res(false));});q.on('error',()=>res(false));q.on('timeout',()=>{q.destroy();res(false);});});
+          Promise.all([check(5173,'/'),check(3100,'/api/apps/6ac2a2c658b71f654f65e2f3/entities/stages',true)]).then(([w,b])=>{if(!w)console.error('frontend (5173) not serving live source');if(!b)console.error('backend (3100) entity reads failing');process.exit(w&&b?0:1);});"
       interval: 10s
       timeout: 5s
-      retries: 3
-      start_period: 30s
+      retries: 6
+      start_period: 90s
 
 volumes:
   node_modules:

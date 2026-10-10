@@ -14,6 +14,7 @@ export default function Home() {
   const [stageId, setStageId] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     load();
@@ -21,28 +22,42 @@ export default function Home() {
 
   const load = async () => {
     setLoading(true);
-    const [reflectionList, stageList] = await Promise.all([
-      base44.entities.reflections.list('-created_date', 50),
-      base44.entities.stages.list('order', 50),
-    ]);
-    setReflections(reflectionList);
-    setStages(stageList);
-    if (stageList.length) setStageId(stageList[0].id);
-    setLoading(false);
+    setError('');
+    try {
+      const [reflectionList, stageList] = await Promise.all([
+        base44.entities.reflections.list('-created_date', 50),
+        base44.entities.stages.list('order', 50),
+      ]);
+      setReflections(reflectionList);
+      setStages(stageList);
+      if (stageList.length) setStageId(stageList[0].id);
+    } catch (err) {
+      console.error('Failed to load reflections:', err);
+      setError('Could not reach the server. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!content.trim() || !stageId) return;
     setSaving(true);
-    const created = await base44.entities.reflections.create({
-      content: content.trim(),
-      currentStageId: stageId,
-      timestamp: new Date().toISOString(),
-    });
-    setReflections((prev) => [created, ...prev]);
-    setContent('');
-    setSaving(false);
+    setError('');
+    try {
+      const created = await base44.entities.reflections.create({
+        content: content.trim(),
+        currentStageId: stageId,
+        timestamp: new Date().toISOString(),
+      });
+      setReflections((prev) => [created, ...prev]);
+      setContent('');
+    } catch (err) {
+      console.error('Failed to save reflection:', err);
+      setError('Could not save your reflection. Please try again later.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const stageTitle = (id) => stages.find((s) => s.id === id)?.title || '';
@@ -104,6 +119,8 @@ export default function Home() {
           {saving ? 'Saving...' : 'Add reflection'}
         </Button>
       </form>
+
+      {error && <p className="mb-6 text-sm text-destructive">{error}</p>}
 
       <section className="space-y-4">
         {loading ? (
